@@ -18,7 +18,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 app.use('/public', express.static(`${process.cwd()}/public`));
 
@@ -34,16 +34,15 @@ app.get('/api/hello', function(req, res) {
 app.post('/api/shorturl', (req, res) => {
   console.log(req.body);
   const url = req.body.url;
-  dns.lookup(urlparser.parse(url).hostname, async (err, address) => {
-    if(err) return console.error(err);
-
-    if(!address) { res.send({error: "invalid url"})} 
-    else {
+  const dnslookup = dns.lookup(urlparser.parse(url).hostname, async (err, address) => {
+    if (!address){
+      res.json({error: "Invalid URL"})
+    } else {
       const docCount = await col.countDocuments({});
 
       const newUrl = {
         url,
-        shorturl: docCount
+        short_url: docCount
       }
 
       const result = await col.insertOne(newUrl);
@@ -51,18 +50,17 @@ app.post('/api/shorturl', (req, res) => {
 
       res.json({
         original_url: url,
-        shorturl: docCount,
+        short_url: docCount,
       });
     }
   });
 });
 
-app.get('/api/shorturl/:shorturl', async(req, res) => {
-  const shortenUrl = await col.findOne({
-    shorturl: +req.params.shorturl
-  });
-  res.redirect(shortenUrl.url);
-})
+app.get("/api/shorturl/:short_url", async (req, res) => {
+  const shorturl = req.params.short_url
+  const shortenUrl = await col.findOne({ short_url: +shorturl })
+  res.redirect(shortenUrl.url)
+});
 
 app.listen(port, function() {
   console.log(`Listening on port ${port}`);
